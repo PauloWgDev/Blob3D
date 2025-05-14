@@ -41,8 +41,16 @@ void Application::Start() {
     Piramid* piramid = new Piramid(basicShader);
     piramid->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     piramid->SetColor(glm::vec3(1.0f, 0.5f, 0.2f));
-
     scene->AddObject(std::unique_ptr<Object3D>(piramid));
+
+
+    Cube* cube = new Cube(basicShader);
+    cube->SetPosition(glm::vec3(-4.0f, 0.0f, 0.0f));
+    cube->SetColor(glm::vec3(0.7f, 0.0f, 0.3f));
+    scene->AddObject(std::unique_ptr<Object3D>(cube));
+
+    robot.Create(basicShader, scene);
+    robot.body->SetPosition(glm::vec3(4.0f, 2.0f, 0.0f));
 }
 
 void Application::Run() {
@@ -53,6 +61,7 @@ void Application::Run() {
 
         ProcessInput(deltaTime);
         Update(deltaTime);
+        scene->Update();
 
         renderer->Render(scene, renderer->GetViewProj());
     }
@@ -110,5 +119,5 @@ void Application::ProcessInput(float deltaTime) {
 
 void Application::Update(float deltaTime)
 {
-
+    robot.Update(deltaTime);
 }

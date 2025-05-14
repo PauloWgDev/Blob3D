@@ -3,6 +3,7 @@
 #include "Mesh.h"
 #include <glm/glm.hpp>
 #include <vector>
+#include <memory>
 
 using namespace glm;
 
@@ -15,7 +16,7 @@ public:
 
     vec3 color = glm::vec3(1.0f);
 
-    std::vector<Object3D*> children;
+    std::vector<std::unique_ptr<Object3D>> children;
 
     Object3D();
     virtual ~Object3D();
@@ -37,7 +38,7 @@ public:
 
     void SetColor(const vec3& newColor) { color = newColor; }
 
-    void AddChild(Object3D* child);
+    void AddChild(std::unique_ptr<Object3D> child);
     
     void ComputeModelMatrix(const glm::mat4& parentTransform); 
 

@@ -32,6 +32,13 @@ void Object3D::Draw(const glm::mat4& viewProjMatrix)
         shader->setVec3("uColor", glm::value_ptr(color));
         mesh->draw();
     }
+
+    // Recusively draw children
+    for (const auto& child : children) {
+        if (child) {
+            child->Draw(viewProjMatrix);
+        }
+    }
 }
 
 void Object3D::SetPosition(const glm::vec3& pos)
@@ -74,13 +81,13 @@ void Object3D::SetPivotOffset(const glm::vec3& offset) {
     pivotOffset = offset;
 }
 
-void Object3D::AddChild(Object3D* child) {
-    children.push_back(child);
+void Object3D::AddChild(std::unique_ptr<Object3D> child) {
+    children.push_back(std::move(child));
 }
 
 void Object3D::ComputeModelMatrix(const glm::mat4& parentTransform) {
     modelMatrix = parentTransform * localTransform;
-    for (auto child : children) { // exception here
+    for (const auto& child : children) { 
         if (child) child->ComputeModelMatrix(modelMatrix);
     }
 }
