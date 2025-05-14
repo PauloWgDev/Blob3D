@@ -31,6 +31,9 @@
     <Filter Include="Source Files\CG">
       <UniqueIdentifier>{7ed7c3d9-5cbe-440e-8fa7-981221970c6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Physics">
+      <UniqueIdentifier>{221d97a7-27b6-4f29-8075-7267daffb080}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Blob3D.cpp">
@@ -72,6 +75,9 @@
     <None Include="basic.frag">
       <Filter>Assets\shaders</Filter>
     </None>
+    <None Include="outline.frag">
+      <Filter>Assets\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
@@ -106,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="Piramid.h">
       <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.h">
+      <Filter>Header Files\Physics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

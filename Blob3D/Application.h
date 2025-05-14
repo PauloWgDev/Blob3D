@@ -6,6 +6,9 @@
 #include "WindowContext.h"
 #include "Robot.h"
 #include "Piramid.h"
+#include "Ray.h"
+#include <glm/gtx/string_cast.hpp>
+
 
 class Application {
 public:
@@ -26,12 +29,17 @@ private:
 
     GLFWwindow* window;
 
+    Ray ScreenPosToRay(float mouseX, float mouseY);
+    Object3D* selectedObject = nullptr;
+
+
     float lastFrameTime = glfwGetTime(); // used for DeltaTime
 
     //bool Initialize();  // Initializes everything
     void ProcessInput(float deltaTime);
     void Update(float deltaTime);
     void OnMouseMove(double xpos, double ypos);
+    void OnMouseClick();
 
     Robot robot;
 

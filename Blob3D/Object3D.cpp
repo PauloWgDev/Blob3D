@@ -1,4 +1,5 @@
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include "Object3D.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -102,4 +103,36 @@ void Object3D::RebuildLocalTransform()
     localTransform = glm::rotate(localTransform, glm::radians(rotationEuler.z), glm::vec3(0, 0, 1));
     localTransform = glm::scale(localTransform, scale);
     localTransform = glm::translate(localTransform, pivotOffset);
+}
+
+bool Object3D::IntersectRay(const Ray& ray) const {
+    glm::vec3 min = glm::vec3(modelMatrix * glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f));
+    glm::vec3 max = glm::vec3(modelMatrix * glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
+
+    float tmin = (min.x - ray.origin.x) / ray.direction.x;
+    float tmax = (max.x - ray.origin.x) / ray.direction.x;
+    if (tmin > tmax) std::swap(tmin, tmax);
+
+    float tymin = (min.y - ray.origin.y) / ray.direction.y;
+    float tymax = (max.y - ray.origin.y) / ray.direction.y;
+    if (tymin > tymax) std::swap(tymin, tymax);
+
+    if ((tmin > tymax) || (tymin > tmax))
+        return false;
+
+    tmin = std::max(tmin, tymin);
+    tmax = std::min(tmax, tymax);
+
+    float tzmin = (min.z - ray.origin.z) / ray.direction.z;
+    float tzmax = (max.z - ray.origin.z) / ray.direction.z;
+    if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+
+    return true;
+}
+
+void Object3D::DrawRawMesh() {
+    if (mesh) mesh->draw();
 }

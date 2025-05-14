@@ -1,7 +1,11 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "Application.h"
 #include "Cube.h"
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+
 
 Application::Application(int width, int height, const char* title)
     : width(width), height(height), title(title), window(nullptr) {
@@ -16,6 +20,131 @@ Application::~Application() {
     delete context;
     context = nullptr;
 }
+
+void Application::OnMouseMove(double xpos, double ypos) {
+    if (!rightMousePressed) {
+        firstMouse = true;
+        return;
+    }
+
+    if (firstMouse) {
+        lastX = static_cast<float>(xpos);
+        lastY = static_cast<float>(ypos);
+        firstMouse = false;
+    }
+
+    float xoffset = static_cast<float>(xpos) - lastX;
+    float yoffset = lastY - static_cast<float>(ypos);  // y is inverted
+
+    lastX = static_cast<float>(xpos);
+    lastY = static_cast<float>(ypos);
+
+    camera->ProcessMouseMovement(xoffset, yoffset);
+}
+
+void Application::OnMouseClick() {
+    static bool wasPressedLastFrame = false;
+    bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+
+    if (isPressed && !wasPressedLastFrame) {
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        Ray ray = ScreenPosToRay((float)mouseX, (float)mouseY);
+
+        Object3D* hit = nullptr;
+
+        for (const auto& obj : scene->GetObjects()) {
+            if (obj->IntersectRay(ray)) {
+                hit = obj.get();  // store raw pointer to avoid duplicate search
+                break;
+            }
+        }
+
+        // Only update if it's a different selection
+        if (selectedObject != hit) {
+            if (selectedObject) selectedObject->SetSelected(false);
+            selectedObject = hit;
+            if (selectedObject) {
+                selectedObject->SetSelected(true);
+                std::cout << "Object selected!\n";
+                std::cout << "Position: " << glm::to_string(selectedObject->GetPosition()) << "\n";
+                std::cout << "Rotation: " << glm::to_string(selectedObject->GetRotationEuler()) << "\n";
+                std::cout << "Scale:    " << glm::to_string(selectedObject->GetScale()) << "\n";
+            }
+        }
+    }
+
+    wasPressedLastFrame = isPressed;
+}
+
+
+
+void Application::ProcessInput(float deltaTime) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    bool forward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    bool backward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    bool left = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    bool right = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    bool up = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+    bool down = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+
+    // Detect right mouse button state
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        if (!rightMousePressed) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // Lock and hide cursor
+            rightMousePressed = true;
+        }
+    }
+    else {
+        if (rightMousePressed) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  // Show cursor
+            rightMousePressed = false;
+        }
+    }
+
+    camera->ProcessKeyboard(deltaTime, forward, backward, left, right, up, down);
+}
+
+
+Ray Application::ScreenPosToRay(float mouseX, float mouseY) {
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+
+    float x = (2.0f * mouseX) / fbWidth - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / fbHeight;
+
+    glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
+
+    glm::mat4 proj = renderer->GetProjection();
+    glm::mat4 view = renderer->GetView();
+
+    glm::vec4 rayEye = glm::inverse(proj) * rayClip;
+    rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+
+    glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
+    glm::vec3 rayOrigin = camera->GetPosition();
+
+    return Ray(rayOrigin, rayWorld);
+}
+
+void Application::Run() {
+    while (!glfwWindowShouldClose(renderer->GetWindow())) {
+        float currentFrameTime = glfwGetTime();
+        float deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+
+        ProcessInput(deltaTime);
+        Update(deltaTime);
+        scene->Update();
+
+        renderer->Render(scene, renderer->GetViewProj());
+    }
+}
+
 
 void Application::Start() {
     if (!renderer->Initialize()) return;
@@ -53,71 +182,10 @@ void Application::Start() {
     robot.body->SetPosition(glm::vec3(4.0f, 2.0f, 0.0f));
 }
 
-void Application::Run() {
-    while (!glfwWindowShouldClose(renderer->GetWindow())) {
-        float currentFrameTime = glfwGetTime();
-        float deltaTime = currentFrameTime - lastFrameTime;
-        lastFrameTime = currentFrameTime;
 
-        ProcessInput(deltaTime);
-        Update(deltaTime);
-        scene->Update();
-
-        renderer->Render(scene, renderer->GetViewProj());
-    }
-}
-
-void Application::OnMouseMove(double xpos, double ypos) {
-    if (!rightMousePressed) {
-        firstMouse = true;
-        return;
-    }
-
-    if (firstMouse) {
-        lastX = static_cast<float>(xpos);
-        lastY = static_cast<float>(ypos);
-        firstMouse = false;
-    }
-
-    float xoffset = static_cast<float>(xpos) - lastX;
-    float yoffset = lastY - static_cast<float>(ypos);  // y is inverted
-
-    lastX = static_cast<float>(xpos);
-    lastY = static_cast<float>(ypos);
-
-    camera->ProcessMouseMovement(xoffset, yoffset);
-}
-void Application::ProcessInput(float deltaTime) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, true);
-    }
-
-    bool forward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    bool backward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    bool left = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    bool right = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    bool up = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-    bool down = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-
-    // Detect right mouse button state
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-        if (!rightMousePressed) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // Lock and hide cursor
-            rightMousePressed = true;
-        }
-    }
-    else {
-        if (rightMousePressed) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  // Show cursor
-            rightMousePressed = false;
-        }
-    }
-
-    camera->ProcessKeyboard(deltaTime, forward, backward, left, right, up, down);
-}
 
 void Application::Update(float deltaTime)
 {
     robot.Update(deltaTime);
+    OnMouseClick();
 }

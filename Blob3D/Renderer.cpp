@@ -3,6 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include "WindowContext.h"
+#include <glm/gtc/type_ptr.hpp>
+
 
 Renderer::Renderer(int width, int height, const char* title)
     : window(nullptr), shader(nullptr), view(glm::mat4(1.0f)), projection(glm::mat4(1.0f)) {}
@@ -26,6 +28,7 @@ bool Renderer::Initialize() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_STENCIL_BITS, 8);
 
     window = glfwCreateWindow(800, 600, "Blob3D", nullptr, nullptr);
     if (!window) {
@@ -53,6 +56,7 @@ bool Renderer::Initialize() {
     glEnable(GL_DEPTH_TEST);
 
     shader = new Shader("basic.vert", "basic.frag", false);
+    outlineShader = new Shader("basic.vert", "outline.frag", false);
 
     SetupCamera();
 
@@ -66,16 +70,41 @@ void Renderer::SetupCamera() {
 
 void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix) {
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Pass 1: Normal draw with stencil write
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF); // Enable stencil write
 
     shader->use();
-
-    // Set the view-projection matrix for the shader
     shader->setMat4("viewProj", &viewProjMatrix[0][0]);
-
-    // Render all objects in the scene
     scene->Render(shader, viewProjMatrix);
 
+    // Pass 2: Draw outlines where stencil != 1
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilMask(0x00); // Disable stencil write
+    glDisable(GL_DEPTH_TEST);
+
+    outlineShader->use();
+
+    for (const auto& obj : scene->GetObjects()) {
+        if (obj->IsSelected()) {
+            glm::mat4 scaled = obj->GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(1.05f));
+            glm::mat4 mvp = viewProjMatrix * scaled;
+            outlineShader->setMat4("MVP", &mvp[0][0]);
+            outlineShader->setVec3("uColor", glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
+            obj->DrawRawMesh();
+        }
+    }
+
+    // Restore state
+    glStencilMask(0xFF);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

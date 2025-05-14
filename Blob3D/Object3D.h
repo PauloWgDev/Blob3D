@@ -1,9 +1,13 @@
 #pragma once
+
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "Shader.h"
 #include "Mesh.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
+#include "Ray.h"
 
 using namespace glm;
 
@@ -13,10 +17,10 @@ public:
     vec3 position = glm::vec3(0.0f);
     vec3 rotationEuler = glm::vec3(0.0f);
     vec3 scale = glm::vec3(1.0f);
-
     vec3 color = glm::vec3(1.0f);
-
     std::vector<std::unique_ptr<Object3D>> children;
+    bool selected = false;
+
 
     Object3D();
     virtual ~Object3D();
@@ -28,6 +32,16 @@ public:
     void SetRotationEuler(const vec3& rotation);
     void SetScale(const vec3& scale);
 
+    glm::vec3 GetPosition() const { return position; }
+    glm::vec3 GetRotationEuler() const { return rotationEuler; }
+    glm::vec3 GetScale() const { return scale; }
+
+    // Selection
+    void SetSelected(bool value) { selected = value; }
+    bool IsSelected() const { return selected; }
+
+    glm::mat4 GetModelMatrix() const { return modelMatrix; }
+    void DrawRawMesh();
 
     // Local-space setters
     void SetTransform(const glm::vec3& position, const glm::vec3& rotationEuler, const glm::vec3& scale);
@@ -44,6 +58,8 @@ public:
 
     // Apply local TRS with pivot offset, used before parent matrix multiplication
     void RebuildLocalTransform();
+
+    bool IntersectRay(const Ray& ray) const;
 
 protected:
     Mesh* mesh;

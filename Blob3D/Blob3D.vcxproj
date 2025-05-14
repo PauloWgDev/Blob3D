@@ -155,6 +155,7 @@
   <ItemGroup>
     <None Include="basic.frag" />
     <None Include="basic.vert" />
+    <None Include="outline.frag" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -165,6 +166,7 @@
     <ClInclude Include="Object3D.h" />
     <ClInclude Include="Piramid.h" />
     <ClInclude Include="Prism.h" />
+    <ClInclude Include="Ray.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
