@@ -19,6 +19,12 @@ Debug/
 *.userosscache
 *.sln.docstates
 
+.vs/
+*.ipch
+*.sdf
+*.VC.db
+
+
 # OS files
 .DS_Store
 Thumbs.db
