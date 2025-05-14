@@ -1,0 +1,24 @@
+# Compiled files
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# Build folders
+build/
+out/
+bin/
+Release/
+Debug/
+
+# IDE files
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
