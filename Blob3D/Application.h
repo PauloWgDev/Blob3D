@@ -27,6 +27,7 @@ private:
     Renderer* renderer;  
     Scene* scene;
     Camera* camera;
+    Shader* basicShader;
 
     GLFWwindow* window;
 
@@ -42,6 +43,7 @@ private:
     void Update(float deltaTime);
     void OnMouseMove(double xpos, double ypos);
     void OnMouseClick();
+    void HandleObjectSpawning();
 
     Robot robot;
 

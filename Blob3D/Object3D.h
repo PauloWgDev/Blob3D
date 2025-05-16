@@ -34,6 +34,7 @@ public:
     glm::vec3 GetPosition() const { return position; }
     glm::vec3 GetRotationEuler() const { return rotationEuler; }
     glm::vec3 GetScale() const { return scale; }
+    glm::vec3 GetColor() const { return color; }
 
     // Selection
     void SetSelected(bool value) { selected = value; }

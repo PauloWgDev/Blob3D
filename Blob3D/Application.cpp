@@ -97,6 +97,32 @@ void Application::OnMouseClick() {
 }
 
 
+void Application::HandleObjectSpawning()
+{
+    ObjectType request = gui.GetSpawnRequest();
+
+    if (request != ObjectType::None) {
+        Object3D* newObj = nullptr;
+
+        if (request == ObjectType::Cube) {
+            Cube* cube = new Cube(basicShader);  // basicShader must be accessible
+            cube->SetPosition(glm::vec3(0, 0, 0));
+            cube->SetColor(glm::vec3(0.2f, 0.8f, 0.3f));
+            newObj = cube;
+        }
+        else if (request == ObjectType::Pyramid) {
+            Piramid* pyramid = new Piramid(basicShader);
+            pyramid->SetPosition(glm::vec3(0, 0, 0));
+            pyramid->SetColor(glm::vec3(0.8f, 0.6f, 0.2f));
+            newObj = pyramid;
+        }
+
+        if (newObj)
+            scene->AddObject(std::unique_ptr<Object3D>(newObj));
+    }
+
+}
+
 
 void Application::ProcessInput(float deltaTime) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -175,6 +201,8 @@ void Application::Run() {
 
         gui.Render(selectedObject); // GUI rendering must be inside frame
 
+        HandleObjectSpawning();
+
         ImGui::Render(); // Must come AFTER gui.Render()
 
         if (!io.WantCaptureMouse)
@@ -190,9 +218,6 @@ void Application::Run() {
         renderer->Render(scene, renderer->GetViewProj(), ImGui::GetDrawData());
     }
 }
-
-
-
 
 void Application::Start() {
     if (!renderer->Initialize()) return;
@@ -225,7 +250,7 @@ void Application::Start() {
     camera = new Camera(glm::vec3(0.0f, 0.0f, 10.0f), -90.0f, 0.0f);
     renderer->SetCamera(camera);
 
-    Shader* basicShader = new Shader("basic.vert", "basic.frag", true);
+    basicShader = new Shader("basic.vert", "basic.frag", true);
 
     Piramid* piramid = new Piramid(basicShader);
     piramid->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));

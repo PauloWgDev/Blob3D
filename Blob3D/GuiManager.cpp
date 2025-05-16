@@ -40,6 +40,7 @@ void GuiManager::Render(Object3D* selected) {
         auto pos = selected->GetPosition();
         auto rot = selected->GetRotationEuler();
         auto scale = selected->GetScale();
+        auto color = selected->GetColor();
 
         if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
             selected->SetPosition(pos);
@@ -49,12 +50,31 @@ void GuiManager::Render(Object3D* selected) {
 
         if (ImGui::DragFloat3("Scale", &scale.x, 0.1f))
             selected->SetScale(scale);
+
+        if (ImGui::DragFloat3("Color", &color.x, 0.1f))
+            selected->SetColor(color);
+
     }
     else {
         ImGui::Text("No object selected.");
     }
 
     ImGui::End();
+
+    // Panel 2: Object Spawner
+    ImVec2 spawnPanelPos = ImVec2(windowPos.x, windowPos.y + windowSize.y + 10.0f);
+    ImVec2 spawnPanelSize = ImVec2(windowSize.x, 100.0f);
+    ImGui::SetNextWindowPos(spawnPanelPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(spawnPanelSize, ImGuiCond_Always);
+    ImGui::Begin("Spawn Object");
+
+    if (ImGui::Button("Spawn Cube")) {
+        spawnRequest = ObjectType::Cube;
+    }
+
+    if (ImGui::Button("Spawn Pyramid")) {
+        spawnRequest = ObjectType::Pyramid;
+    }
+
+    ImGui::End();
 }
-
-
