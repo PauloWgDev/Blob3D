@@ -5,7 +5,7 @@
 #include "Shader.h"
 #include "Scene.h"
 #include "Camera.h"
-
+#include <imgui.h>
 
 class Renderer {
 public:
@@ -13,7 +13,7 @@ public:
     ~Renderer();
 
     bool Initialize();
-    void Render(Scene* scene, const glm::mat4& viewProjMatrix);
+    void Render(Scene* scene, const glm::mat4& viewProjMatrix, ImDrawData* imguiDrawData);
     void SetCamera(Camera* cam) { camera = cam; }
     void UpdateProjection(int width, int height);
 

@@ -4,6 +4,9 @@
 #include <iostream>
 #include "WindowContext.h"
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 
 Renderer::Renderer(int width, int height, const char* title)
@@ -68,12 +71,13 @@ void Renderer::SetupCamera() {
 }
 
 
-void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix) {
+void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix, ImDrawData* imguiDrawData) {
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // Pass 1: Normal draw with stencil write
@@ -105,6 +109,13 @@ void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix) {
     glStencilMask(0xFF);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
+
+    // --- Render ImGui *before* swapping buffers ---
+    if (imguiDrawData && imguiDrawData->DisplaySize.x > 0.0f && imguiDrawData->DisplaySize.y > 0.0f) {
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_STENCIL_TEST);
+        ImGui_ImplOpenGL3_RenderDrawData(imguiDrawData);
+    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();

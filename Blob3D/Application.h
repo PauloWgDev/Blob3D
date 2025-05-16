@@ -8,6 +8,7 @@
 #include "Piramid.h"
 #include "Ray.h"
 #include <glm/gtx/string_cast.hpp>
+#include "GuiManager.h"
 
 
 class Application {
@@ -32,6 +33,7 @@ private:
     Ray ScreenPosToRay(float mouseX, float mouseY);
     Object3D* selectedObject = nullptr;
 
+    GuiManager gui;
 
     float lastFrameTime = glfwGetTime(); // used for DeltaTime
 

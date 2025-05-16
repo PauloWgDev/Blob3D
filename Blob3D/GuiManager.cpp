@@ -1,6 +1,5 @@
 #include "GuiManager.h"
 #include "Object3D.h"
-
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -21,24 +20,34 @@ void GuiManager::Shutdown() {
 }
 
 void GuiManager::Render(Object3D* selected) {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 windowSize(300, 180);
+    ImVec2 windowPos(displaySize.x - windowSize.x - 10.0f, 10.0f);
+
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+    ImGui::Begin("Selected Object");
 
     if (selected) {
-        ImGui::Begin("Selected Object");
+        auto pos = selected->GetPosition();
+        auto rot = selected->GetRotationEuler();
+        auto scale = selected->GetScale();
 
-        const auto& pos = selected->GetPosition();
-        const auto& rot = selected->GetRotationEuler();
-        const auto& scale = selected->GetScale();
+        if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
+            selected->SetPosition(pos);
 
-        ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
-        ImGui::Text("Rotation: (%.2f, %.2f, %.2f)", rot.x, rot.y, rot.z);
-        ImGui::Text("Scale:    (%.2f, %.2f, %.2f)", scale.x, scale.y, scale.z);
+        if (ImGui::DragFloat3("Rotation", &rot.x, 1.0f))
+            selected->SetRotationEuler(rot);
 
-        ImGui::End();
+        if (ImGui::DragFloat3("Scale", &scale.x, 0.1f))
+            selected->SetScale(scale);
+    }
+    else {
+        ImGui::Text("No object selected.");
     }
 
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGui::End();
 }
+
+

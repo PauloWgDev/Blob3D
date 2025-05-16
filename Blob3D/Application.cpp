@@ -5,6 +5,9 @@
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 
 Application::Application(int width, int height, const char* title)
@@ -14,6 +17,7 @@ Application::Application(int width, int height, const char* title)
 }
 
 Application::~Application() {
+    gui.Shutdown();
     delete renderer;
     delete scene;
     delete camera;
@@ -44,6 +48,12 @@ void Application::OnMouseMove(double xpos, double ypos) {
 
 void Application::OnMouseClick() {
     static bool wasPressedLastFrame = false;
+
+    if (ImGui::GetIO().WantCaptureMouse) {
+        wasPressedLastFrame = false;
+        return;
+    }
+
     bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 
     if (isPressed && !wasPressedLastFrame) {
@@ -141,14 +151,36 @@ void Application::Run() {
         Update(deltaTime);
         scene->Update();
 
-        renderer->Render(scene, renderer->GetViewProj());
+        // Start ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        Application::OnMouseClick();
+
+        gui.Render(selectedObject); // Display selected object info
+
+        // Set display size BEFORE Render
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        ImGui::GetIO().DisplaySize = ImVec2((float)display_w, (float)display_h);
+
+        // Call Render BEFORE GetDrawData
+        ImGui::Render();
+        ImDrawData* drawData = ImGui::GetDrawData();
+
+        // Final render pass
+        renderer->Render(scene, renderer->GetViewProj(), drawData);
     }
 }
+
 
 
 void Application::Start() {
     if (!renderer->Initialize()) return;
     window = renderer->GetWindow();
+
+    gui.Init(window);
 
     context = new WindowContext();
     context->app = this;
@@ -182,10 +214,7 @@ void Application::Start() {
     robot.body->SetPosition(glm::vec3(4.0f, 2.0f, 0.0f));
 }
 
-
-
 void Application::Update(float deltaTime)
 {
     robot.Update(deltaTime);
-    OnMouseClick();
 }
