@@ -9,7 +9,6 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-
 Application::Application(int width, int height, const char* title)
     : width(width), height(height), title(title), window(nullptr) {
     renderer = new Renderer(width, height, title);  // Create the renderer
@@ -49,10 +48,20 @@ void Application::OnMouseMove(double xpos, double ypos) {
 void Application::OnMouseClick() {
     static bool wasPressedLastFrame = false;
 
-    if (ImGui::GetIO().WantCaptureMouse) {
+    // Determine GUI panel boundaries (assumes GUI is on the right)
+    int winWidth, winHeight;
+    glfwGetFramebufferSize(window, &winWidth, &winHeight);
+    int guiPanelXStart = winWidth - 300; // assuming 300px wide GUI panel
+
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+
+    // If click is inside GUI region, ignore selection
+    if (mouseX >= guiPanelXStart) {
         wasPressedLastFrame = false;
         return;
     }
+
 
     bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 
@@ -124,7 +133,10 @@ Ray Application::ScreenPosToRay(float mouseX, float mouseY) {
     int fbWidth, fbHeight;
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
-    float x = (2.0f * mouseX) / fbWidth - 1.0f;
+    int guiPanelWidth = 300; // same as GUI width in Render
+    int viewportWidth = fbWidth - guiPanelWidth;
+
+    float x = (2.0f * (mouseX - 0)) / viewportWidth - 1.0f;  // Adjust if GUI on left
     float y = 1.0f - (2.0f * mouseY) / fbHeight;
 
     glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
@@ -143,36 +155,42 @@ Ray Application::ScreenPosToRay(float mouseX, float mouseY) {
 
 void Application::Run() {
     while (!glfwWindowShouldClose(renderer->GetWindow())) {
+        glfwPollEvents();
+
         float currentFrameTime = glfwGetTime();
         float deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
 
-        ProcessInput(deltaTime);
-        Update(deltaTime);
         scene->Update();
 
-        // Start ImGui frame
+        // Start new ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplGlfw_NewFrame(); // <-- sets DisplaySize properly
         ImGui::NewFrame();
 
-        Application::OnMouseClick();
+        ImGuiIO& io = ImGui::GetIO();
 
-        gui.Render(selectedObject); // Display selected object info
+        if (!io.WantCaptureKeyboard)
+            ProcessInput(deltaTime);
 
-        // Set display size BEFORE Render
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        ImGui::GetIO().DisplaySize = ImVec2((float)display_w, (float)display_h);
+        gui.Render(selectedObject); // GUI rendering must be inside frame
 
-        // Call Render BEFORE GetDrawData
-        ImGui::Render();
-        ImDrawData* drawData = ImGui::GetDrawData();
+        ImGui::Render(); // Must come AFTER gui.Render()
 
-        // Final render pass
-        renderer->Render(scene, renderer->GetViewProj(), drawData);
+        if (!io.WantCaptureMouse)
+            OnMouseClick();
+        else
+            std::cout << "io does want to capture the mouse\n";
+
+        if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
+            std::cout << "GLFW window is not focused\n";
+        }
+
+
+        renderer->Render(scene, renderer->GetViewProj(), ImGui::GetDrawData());
     }
 }
+
 
 
 
@@ -190,9 +208,19 @@ void Application::Start() {
     glfwSetWindowUserPointer(window, context);
 
     glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos) {
+        ImGui_ImplGlfw_CursorPosCallback(win, xpos, ypos);  // Forward to ImGui
         auto* ctx = static_cast<WindowContext*>(glfwGetWindowUserPointer(win));
         if (ctx && ctx->app) ctx->app->OnMouseMove(xpos, ypos);
         });
+
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods) {
+        ImGui_ImplGlfw_MouseButtonCallback(win, button, action, mods);  // Forward to ImGui
+        });
+
+    glfwSetScrollCallback(window, [](GLFWwindow* win, double xoffset, double yoffset) {
+        ImGui_ImplGlfw_ScrollCallback(win, xoffset, yoffset);  // Forward to ImGui
+        });
+
 
     camera = new Camera(glm::vec3(0.0f, 0.0f, 10.0f), -90.0f, 0.0f);
     renderer->SetCamera(camera);

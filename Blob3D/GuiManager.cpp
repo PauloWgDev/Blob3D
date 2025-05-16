@@ -10,7 +10,7 @@ void GuiManager::Init(GLFWwindow* window) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
+    ImGui_ImplOpenGL3_Init(nullptr);
 }
 
 void GuiManager::Shutdown() {
@@ -21,13 +21,20 @@ void GuiManager::Shutdown() {
 
 void GuiManager::Render(Object3D* selected) {
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 windowSize(300, 180);
+    ImVec2 windowSize(290, 180);
     ImVec2 windowPos(displaySize.x - windowSize.x - 10.0f, 10.0f);
 
     ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.MouseDrawCursor = true; // Show ImGui’s own mouse cursor
+
+
     ImGui::Begin("Selected Object");
+    ImGui::Text("Mouse capture: %s", ImGui::GetIO().WantCaptureMouse ? "Yes" : "No");
+    ImGui::Text("Window hovered: %s", ImGui::IsWindowHovered() ? "Yes" : "No");
 
     if (selected) {
         auto pos = selected->GetPosition();

@@ -21,7 +21,6 @@ public:
     std::vector<std::unique_ptr<Object3D>> children;
     bool selected = false;
 
-
     Object3D();
     virtual ~Object3D();
 

@@ -72,27 +72,33 @@ void Renderer::SetupCamera() {
 
 
 void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix, ImDrawData* imguiDrawData) {
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
+    int guiPanelWidth = 300;
+    int viewportWidth = windowWidth - guiPanelWidth;
+
+    // Set viewport only to 3D area (left side)
+    glViewport(0, 0, viewportWidth, windowHeight);
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f); // Dark background for 3D area
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Normal 3D rendering
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // Pass 1: Normal draw with stencil write
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilMask(0xFF); // Enable stencil write
+    glStencilMask(0xFF);
 
     shader->use();
     shader->setMat4("viewProj", &viewProjMatrix[0][0]);
     scene->Render(shader, viewProjMatrix);
 
-    // Pass 2: Draw outlines where stencil != 1
+    // Outline pass
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00); // Disable stencil write
+    glStencilMask(0x00);
     glDisable(GL_DEPTH_TEST);
-
     outlineShader->use();
 
     for (const auto& obj : scene->GetObjects()) {
@@ -100,28 +106,36 @@ void Renderer::Render(Scene* scene, const glm::mat4& viewProjMatrix, ImDrawData*
             glm::mat4 scaled = obj->GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(1.05f));
             glm::mat4 mvp = viewProjMatrix * scaled;
             outlineShader->setMat4("MVP", &mvp[0][0]);
-            outlineShader->setVec3("uColor", glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
+            outlineShader->setVec3("uColor", glm::value_ptr(glm::vec3(1.0f)));
             obj->DrawRawMesh();
         }
     }
 
-    // Restore state
+    // Reset
     glStencilMask(0xFF);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
 
-    // --- Render ImGui *before* swapping buffers ---
-    if (imguiDrawData && imguiDrawData->DisplaySize.x > 0.0f && imguiDrawData->DisplaySize.y > 0.0f) {
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_STENCIL_TEST);
+    // Now restore full window for GUI (draws on top, no need to clear)
+    glViewport(0, 0, windowWidth, windowHeight);
+    if (imguiDrawData)
         ImGui_ImplOpenGL3_RenderDrawData(imguiDrawData);
-    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
-void Renderer::UpdateProjection(int width, int height) {
-    float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-    projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+
+
+void Renderer::UpdateProjection(int windowWidth, int windowHeight) {
+    int guiPanelWidth = 300;
+    int viewportWidth = windowWidth - guiPanelWidth;
+
+    // Ensure non-zero and valid aspect ratio
+    if (viewportWidth <= 0 || windowHeight <= 0)
+        return;
+
+    float aspect = static_cast<float>(viewportWidth) / static_cast<float>(windowHeight);
+    projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 }
+
