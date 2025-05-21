@@ -14,8 +14,12 @@ public:
 
     void AddObject(std::unique_ptr<Object3D> object);  // Singular
     void AddObjects(std::vector<std::unique_ptr<Object3D>> newObjects); // Add multiple Objects at once
+    void RemoveObject(Object3D* obj);
     void Update(); 
     void Render(Shader* shader, const glm::mat4& viewProjMatrix);
+
+    void SaveToFile(const std::string& filename) const;
+    void LoadFromFile(const std::string& filename, Shader* shader);
 
     const std::vector<std::unique_ptr<Object3D>>& GetObjects() const { return objects; }
 

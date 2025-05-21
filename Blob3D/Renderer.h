@@ -21,7 +21,7 @@ public:
     Camera* GetCamera() const { return camera; }
     Shader* GetShader() const { return shader; }
 
-    glm::mat4 GetProjection() const { return projection; }  // Getter for the projection matrix
+    glm::mat4 GetProjection() const { return projection; }
     glm::mat4 GetView() const {
         return camera ? camera->GetViewMatrix() : glm::mat4(1.0f);
     }

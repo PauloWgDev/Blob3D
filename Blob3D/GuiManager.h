@@ -6,18 +6,20 @@
 #include <GLFW/glfw3.h>
 
 class Object3D;  // Forward declaration
+class SceneIODelegate;
 
 enum class ObjectType {
     None,
     Cube,
-    Pyramid
+    Pyramid,
+    Sphere
 };
 
 class GuiManager {
 public:
-    void Init(GLFWwindow* window);
+    void Init(GLFWwindow* window, SceneIODelegate* delegate);
     void Shutdown();
-    void Render(Object3D* selected);
+    Object3D* Render(Object3D* selected);
 
     ObjectType GetSpawnRequest() {
         ObjectType tmp = spawnRequest;
@@ -26,5 +28,6 @@ public:
     }
 
 private:
+    SceneIODelegate* ioDelegate = nullptr;
     ObjectType spawnRequest = ObjectType::None;
 };

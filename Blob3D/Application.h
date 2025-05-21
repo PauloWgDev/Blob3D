@@ -9,19 +9,28 @@
 #include "Ray.h"
 #include <glm/gtx/string_cast.hpp>
 #include "GuiManager.h"
+#include "SceneIODelegate.h"
 
 
-class Application {
+class Application : public SceneIODelegate {
 public:
+    Object3D* deletionRequest = nullptr;
+    
     Application(int width, int height, const char* title);
     ~Application();
 
     void Start(); // Initialization
     void Run();   // Main render loop
 
+    void SaveSceneToFile(const std::string& filename) override;
+    void LoadSceneFromFile(const std::string& filename) override;
+
 private:
     int width, height;
     const char* title;
+
+    float maxFPS = 120.0f;
+
 
     WindowContext* context = nullptr;
     Renderer* renderer;  
@@ -29,12 +38,12 @@ private:
     Camera* camera;
     Shader* basicShader;
 
+    GuiManager gui;
+
     GLFWwindow* window;
 
     Ray ScreenPosToRay(float mouseX, float mouseY);
     Object3D* selectedObject = nullptr;
-
-    GuiManager gui;
 
     float lastFrameTime = glfwGetTime(); // used for DeltaTime
 
@@ -44,6 +53,7 @@ private:
     void OnMouseMove(double xpos, double ypos);
     void OnMouseClick();
     void HandleObjectSpawning();
+    void HandleObjectDeletion();
 
     Robot robot;
 

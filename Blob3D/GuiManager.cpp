@@ -1,16 +1,19 @@
 #include "GuiManager.h"
 #include "Object3D.h"
+#include "SceneIODelegate.h"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-void GuiManager::Init(GLFWwindow* window) {
+
+void GuiManager::Init(GLFWwindow* window, SceneIODelegate* delegate) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(nullptr);
+    this->ioDelegate = delegate;
 }
 
 void GuiManager::Shutdown() {
@@ -19,10 +22,12 @@ void GuiManager::Shutdown() {
     ImGui::DestroyContext();
 }
 
-void GuiManager::Render(Object3D* selected) {
+Object3D* GuiManager::Render(Object3D* selected) {
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     ImVec2 windowSize(290, 180);
     ImVec2 windowPos(displaySize.x - windowSize.x - 10.0f, 10.0f);
+
+    Object3D* deletionRequest = nullptr;
 
     ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
@@ -54,6 +59,10 @@ void GuiManager::Render(Object3D* selected) {
         if (ImGui::DragFloat3("Color", &color.x, 0.1f))
             selected->SetColor(color);
 
+        if (ImGui::Button("Delete Object")) {
+            deletionRequest = selected; // you can also call: app->RequestObjectDeletion(selected);
+        }
+
     }
     else {
         ImGui::Text("No object selected.");
@@ -76,5 +85,32 @@ void GuiManager::Render(Object3D* selected) {
         spawnRequest = ObjectType::Pyramid;
     }
 
+    if (ImGui::Button("Spawn Sphere")) {
+        spawnRequest = ObjectType::Sphere;
+    }
+
+
     ImGui::End();
+
+    // Panel 3: Scene I/O
+    ImVec2 ioPanelPos = ImVec2(spawnPanelPos.x, spawnPanelPos.y + spawnPanelSize.y + 10.0f);
+    ImVec2 ioPanelSize = ImVec2(windowSize.x, 90.0f);
+    ImGui::SetNextWindowPos(ioPanelPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ioPanelSize, ImGuiCond_Always);
+    ImGui::Begin("Scene I/O");
+
+    static char fileName[128] = "scene.txt";
+    ImGui::InputText("Filename", fileName, IM_ARRAYSIZE(fileName));
+
+    if (ImGui::Button("Save Scene")) {
+        if (ioDelegate) ioDelegate->SaveSceneToFile(fileName);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load Scene")) {
+        if (ioDelegate) ioDelegate->LoadSceneFromFile(fileName);
+    }
+
+    ImGui::End();
+
+    return deletionRequest;
 }

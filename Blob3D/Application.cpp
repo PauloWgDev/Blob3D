@@ -2,12 +2,16 @@
 
 #include "Application.h"
 #include "Cube.h"
+#include "Sphere.h"
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <thread>
+#include <chrono>
+
 
 Application::Application(int width, int height, const char* title)
     : width(width), height(height), title(title), window(nullptr) {
@@ -116,6 +120,13 @@ void Application::HandleObjectSpawning()
             pyramid->SetColor(glm::vec3(0.8f, 0.6f, 0.2f));
             newObj = pyramid;
         }
+        else if (request == ObjectType::Sphere) {
+            Sphere* sphere = new Sphere(basicShader);
+            sphere->SetPosition(glm::vec3(0, 0, 0));
+            sphere->SetColor(glm::vec3(0.3f, 0.6f, 1.0f));
+            newObj = sphere;
+        }
+
 
         if (newObj)
             scene->AddObject(std::unique_ptr<Object3D>(newObj));
@@ -179,43 +190,57 @@ Ray Application::ScreenPosToRay(float mouseX, float mouseY) {
     return Ray(rayOrigin, rayWorld);
 }
 
+
+void Application::HandleObjectDeletion()
+{
+    Object3D* toDelete = gui.Render(selectedObject);
+    if (toDelete)
+    {
+        scene->RemoveObject(toDelete);
+        if (selectedObject == toDelete)
+        {
+            selectedObject == nullptr;
+        }
+    }
+}
+
 void Application::Run() {
     while (!glfwWindowShouldClose(renderer->GetWindow())) {
         glfwPollEvents();
 
-        float currentFrameTime = glfwGetTime();
+        float currentFrameTime = glfwGetTime();                 // Calculate Delta Time
         float deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
 
         scene->Update();
 
-        // Start new ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame(); // <-- sets DisplaySize properly
+        ImGui_ImplOpenGL3_NewFrame();                           // Start new ImGui frame
+        ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         ImGuiIO& io = ImGui::GetIO();
 
-        if (!io.WantCaptureKeyboard)
+        if (!io.WantCaptureKeyboard)                            // Capture Input
             ProcessInput(deltaTime);
 
-        gui.Render(selectedObject); // GUI rendering must be inside frame
+        HandleObjectDeletion();                                  // Handle Deletion of an object
 
-        HandleObjectSpawning();
+        HandleObjectSpawning();                                 // Handle Spawning of an object
 
-        ImGui::Render(); // Must come AFTER gui.Render()
+        ImGui::Render();                                        // Render GUI
 
-        if (!io.WantCaptureMouse)
+        if (!io.WantCaptureMouse)                               // Handle Mouse Click for GUI
             OnMouseClick();
-        else
-            std::cout << "io does want to capture the mouse\n";
 
-        if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
-            std::cout << "GLFW window is not focused\n";
+        renderer->Render(scene, renderer->GetViewProj(), ImGui::GetDrawData()); // Handle 3D rendering
+
+        float frameTime = glfwGetTime() - currentFrameTime;     // Limit FPS
+        float minFrameTime = 1.0f / maxFPS;
+
+        if (frameTime < minFrameTime) {
+            float sleepTime = minFrameTime - frameTime;
+            std::this_thread::sleep_for(std::chrono::duration<float>(sleepTime));
         }
-
-
-        renderer->Render(scene, renderer->GetViewProj(), ImGui::GetDrawData());
     }
 }
 
@@ -223,7 +248,7 @@ void Application::Start() {
     if (!renderer->Initialize()) return;
     window = renderer->GetWindow();
 
-    gui.Init(window);
+    gui.Init(window, this);
 
     context = new WindowContext();
     context->app = this;
@@ -270,4 +295,12 @@ void Application::Start() {
 void Application::Update(float deltaTime)
 {
     robot.Update(deltaTime);
+}
+
+void Application::SaveSceneToFile(const std::string& filename) {
+    scene->SaveToFile(filename);
+}
+
+void Application::LoadSceneFromFile(const std::string& filename) {
+    scene->LoadFromFile(filename, basicShader);
 }
